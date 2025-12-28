@@ -1,87 +1,44 @@
-// write code here
 /* eslint-disable no-console */
-const fs = require('fs');
+
+const { rename } = require('fs/promises');
+const { statSync, existsSync } = require('fs');
 const path = require('path');
 
-function moveFile() {
-  const [, , sourceArg, destinationArg] = process.argv;
+async function app() {
+  const args = process.argv.slice(2);
+  const [source, destination] = args;
 
-  if (!sourceArg || !destinationArg) {
-    console.error('Not enough parameters');
-
-    return;
-  }
-
-  const source = path.resolve(sourceArg);
-  const destination = path.resolve(destinationArg);
-  const isDestinationDirectory = destinationArg.endsWith(path.sep);
-
-  if (!fs.existsSync(source)) {
-    console.error('Source does not exist');
+  if (!source || !destination) {
+    console.error(`Two arguments was needed`);
 
     return;
   }
 
-  const sourceStat = fs.statSync(source);
-
-  if (!sourceStat.isFile()) {
-    console.error('Source is not a file');
+  if (existsSync(source) && !statSync(source).isFile()) {
+    console.error(`I can move just files! `);
 
     return;
   }
 
-  if (isDestinationDirectory) {
-    if (!fs.existsSync(destination)) {
-      throw new Error('Destination directory does not exist');
-    }
+  const slicedDest = destination.endsWith('/')
+    ? destination.slice(0, -1)
+    : destination;
 
-    const destStat = fs.statSync(destination);
+  try {
+    const isDestDir =
+      existsSync(slicedDest) && statSync(slicedDest).isDirectory();
 
-    if (!destStat.isDirectory()) {
-      console.error('Destination is not a directory');
+    const finDest = isDestDir
+      ? path.join(slicedDest, path.basename(source))
+      : slicedDest;
 
-      return;
-    }
-
-    const finalPath = path.join(destination, path.basename(source));
-
-    fs.renameSync(source, finalPath);
-
-    return;
+    await rename(source, finDest);
+    console.log(`${source} was moved to ${destination}`);
+  } catch (e) {
+    console.error(`The file could not be moved. Error: ${e}`);
   }
-
-  if (fs.existsSync(destination)) {
-    const destinationStat = fs.statSync(destination);
-
-    if (destinationStat.isDirectory()) {
-      const finalPath = path.join(destination, path.basename(source));
-
-      fs.renameSync(source, finalPath);
-
-      return;
-    }
-  }
-
-  if (isDestinationDirectory) {
-    if (
-      !fs.existsSync(destination) ||
-      !fs.statSync(destination).isDirectory()
-    ) {
-      throw new Error('Destination directory does not exist');
-    }
-  } else {
-    const parentDir = path.resolve(path.dirname(destination));
-
-    if (!fs.existsSync(parentDir) || !fs.statSync(parentDir).isDirectory()) {
-      console.error('Destination directory does not exist');
-
-      return;
-    }
-  }
-
-  fs.renameSync(source, destination);
 }
 
-moveFile();
+app();
 
-module.exports = { moveFile };
+module.exports = { app };
