@@ -5,48 +5,40 @@ const { statSync, existsSync } = require('fs');
 const path = require('path');
 
 async function app() {
-  const args = process.argv.slice(2);
-  const [source, destination] = args;
+  const [source, destination] = process.argv.slice(2);
 
   if (!source || !destination) {
-    console.error(`Two arguments was needed`);
-
-    return;
+    throw new Error('Two arguments was needed');
   }
 
-  if (existsSync(source) && !statSync(source).isFile()) {
-    console.error(`I can move just files! `);
-
-    return;
+  if (!existsSync(source)) {
+    throw new Error('Source file does not exist');
   }
 
-  const slicedDest = destination.endsWith('/')
+  if (!statSync(source).isFile()) {
+    throw new Error('I can move just files!');
+  }
+
+  const endsWithSlash = destination.endsWith(path.sep);
+  const slicedDest = endsWithSlash
     ? destination.slice(0, -1)
     : destination;
 
-  try {
-  const endsWithSlash = destination.endsWith(path.sep);
+  const parentDir = endsWithSlash
+    ? slicedDest
+    : path.dirname(slicedDest);
 
-  if (endsWithSlash) {
-    if (!existsSync(slicedDest) || !statSync(slicedDest).isDirectory()) {
-      throw new Error('Destination directory does not exist');
-    }
+  if (!existsSync(parentDir) || !statSync(parentDir).isDirectory()) {
+    throw new Error('Destination directory does not exist');
   }
 
-  const isDestDir =
-    existsSync(slicedDest) && statSync(slicedDest).isDirectory();
-
-  const finDest = isDestDir
-    ? path.join(slicedDest, path.basename(source))
+  const finalDest = statSync(parentDir).isDirectory() && endsWithSlash
+    ? path.join(parentDir, path.basename(source))
     : slicedDest;
 
-  await rename(source, finDest);
-  console.log(`${source} was moved to ${destination}`);
-  } catch (e) {
-    console.error(`The file could not be moved. Error: ${e.message}`);
-    throw e; // ⚠️ важливо для тестів
-  }
+  await rename(source, finalDest);
 
+  console.log(`${source} was moved to ${destination}`);
 }
 
 app();
