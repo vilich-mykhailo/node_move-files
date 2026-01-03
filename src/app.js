@@ -25,18 +25,28 @@ async function app() {
     : destination;
 
   try {
-    const isDestDir =
-      existsSync(slicedDest) && statSync(slicedDest).isDirectory();
+  const endsWithSlash = destination.endsWith(path.sep);
 
-    const finDest = isDestDir
-      ? path.join(slicedDest, path.basename(source))
-      : slicedDest;
-
-    await rename(source, finDest);
-    console.log(`${source} was moved to ${destination}`);
-  } catch (e) {
-    console.error(`The file could not be moved. Error: ${e}`);
+  if (endsWithSlash) {
+    if (!existsSync(slicedDest) || !statSync(slicedDest).isDirectory()) {
+      throw new Error('Destination directory does not exist');
+    }
   }
+
+  const isDestDir =
+    existsSync(slicedDest) && statSync(slicedDest).isDirectory();
+
+  const finDest = isDestDir
+    ? path.join(slicedDest, path.basename(source))
+    : slicedDest;
+
+  await rename(source, finDest);
+  console.log(`${source} was moved to ${destination}`);
+  } catch (e) {
+    console.error(`The file could not be moved. Error: ${e.message}`);
+    throw e; // ⚠️ важливо для тестів
+  }
+
 }
 
 app();
