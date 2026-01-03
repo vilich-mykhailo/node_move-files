@@ -36,11 +36,15 @@ async function app() {
     ? path.join(parentDir, path.basename(source))
     : slicedDest;
 
-  await rename(source, finalDest);
-
-  console.log(`${source} was moved to ${destination}`);
+await rename(source, finalDest);
+console.log(`${source} was moved to ${destination}`);
 }
 
-app();
+try {
+  app();
+} catch (error) {
+  console.error(error.message);
+  process.exit(1);
+}
 
 module.exports = { app };
